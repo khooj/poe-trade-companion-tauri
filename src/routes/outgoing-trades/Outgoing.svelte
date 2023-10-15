@@ -16,6 +16,10 @@
 
 	export let cutLength = 15;
 
+	export let onChatCallback = () => {};
+	export let onHideoutCallback = () => {};
+	export let onKickCallback = () => {};
+	export let onTyCallback = () => {};
 	export let onCloseCallback = () => {};
 
 	$: itemNameCutted = itemName.substring(0, cutLength) + '...';
@@ -34,10 +38,10 @@
 			<div>{costNumber} {costCurrency}</div>
 			<div>{lastMessageCutted}</div>
 			<div>
-				<button><ChatSvg height={svgHeight} width={svgWidth} /></button>
-				<button><HideoutSvg height={svgHeight} width={svgWidth} /></button>
-				<button><KickSvg height={svgHeight} width={svgWidth} /></button>
-				<button><TySvg height={svgHeight} width={svgWidth} /></button>
+				<button on:click={onChatCallback}><ChatSvg height={svgHeight} width={svgWidth} /></button>
+				<button on:click={onHideoutCallback}><HideoutSvg height={svgHeight} width={svgWidth} /></button>
+				<button on:click={onKickCallback}><KickSvg height={svgHeight} width={svgWidth} /></button>
+				<button on:click={onTyCallback}><TySvg height={svgHeight} width={svgWidth} /></button>
 			</div>
 		</div>
 	</div>
