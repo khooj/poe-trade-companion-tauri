@@ -54,11 +54,22 @@
     },
     "windows": [
       {
+        "label": "main",
         "fullscreen": false,
         "height": 600,
-        "resizable": true,
+        "resizable": false,
         "title": "poe-trade-companion-tauri",
-        "width": 800
+        "width": 800,
+        "url": "index.html"
+      },
+      {
+        "label": "outgoing",
+        "title": "outgoing-trades",
+        "url": "/outgoing-trades",
+        "height": 600,
+        "width": 800,
+        "fullscreen": false,
+        "resizable": false
       }
     ]
   }

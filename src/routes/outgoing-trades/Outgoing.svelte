@@ -10,10 +10,13 @@
 	export let itemName;
 	export let playerName;
 	export let time;
-	export let cost;
+	export let costNumber;
+	export let costCurrency;
 	export let lastMessage;
 
 	export let cutLength = 15;
+
+	export let onCloseCallback = () => {};
 
 	$: itemNameCutted = itemName.substring(0, cutLength) + '...';
 	$: playerNameCutted = playerName.substring(0, cutLength) + '...';
@@ -28,7 +31,7 @@
 			<div>{time}</div>
 		</div>
 		<div class="flex justify-between">
-			<div>{cost}</div>
+			<div>{costNumber} {costCurrency}</div>
 			<div>{lastMessageCutted}</div>
 			<div>
 				<button><ChatSvg height={svgHeight} width={svgWidth} /></button>
@@ -38,5 +41,5 @@
 			</div>
 		</div>
 	</div>
-	<button class="border-solid border-2">close</button>
+	<button class="border-solid border-2" on:click={onCloseCallback}>close</button>
 </div>
