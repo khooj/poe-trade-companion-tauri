@@ -3,6 +3,7 @@
 
 	function newOutgoingTrade() {
 		emit('new-outgoing-trade', {
+			id: self.crypto.randomUUID(),
 			itemName: "Einhar's Memory of Harvest Beasts",
 			playerName: 'ShaterJug',
 			time: '19:47',
