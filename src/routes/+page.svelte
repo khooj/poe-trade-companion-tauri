@@ -12,6 +12,18 @@
 			lastMessage: 'This player has DND enabled'
 		});
 	}
+
+	function newIncomingTrade() {
+		emit('new-incoming-trade', {
+			id: self.crypto.randomUUID(),
+			buyer: 'FrostBlade_Ninja',
+			item: 'Divine Orb',
+			price: '225 Chaos Orb',
+			stash: 'Ancestor (tab: asd / pos: 9, 2)',
+			lastMessage: '',
+			time: '19:49'
+		});
+	}
 </script>
 
 <nav>
@@ -23,6 +35,7 @@
 <h1 class="text-3xl font-bold underline">Home</h1>
 <p>this is the home page.</p>
 <button on:click={newOutgoingTrade}>New outgoing trade event</button>
+<button on:click={newIncomingTrade}>New incoming trade event</button>
 
 <style lang="postcss">
 	:global(html) {

@@ -1,7 +1,7 @@
 <script>
 	import OutgoingTradeElement from './Outgoing.svelte';
 	import { listen, emit } from '@tauri-apps/api/event';
-	import { writable, readable } from 'svelte/store';
+	import { writable} from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
 

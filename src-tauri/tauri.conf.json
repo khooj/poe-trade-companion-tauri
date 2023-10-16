@@ -78,8 +78,20 @@
         "closable": false,
         "minimizable": false,
         "maximizable": false,
+        "visible": false
+      },
+      {
+        "label": "incoming",
+        "title": "incoming-trades",
+        "url": "/incoming-trades",
+        "height": 600,
+        "width": 800,
         "visible": false,
-        "decorations": true
+        "fullscreen": false,
+        "resizable": false,
+        "closable": false,
+        "minimizable": false,
+        "maximizable": false
       }
     ]
   }
