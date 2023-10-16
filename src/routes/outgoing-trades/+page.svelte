@@ -47,8 +47,13 @@
 	}
 </script>
 
-<div>
-	{#each $trades as trade (trade.id)}
-		<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)} />
-	{/each}
+<div class="w-96 min-h-full">
+	<div>
+		<p>trades: {$trades.length}</p>
+	</div>
+	<div class="overflow-y-auto">
+		{#each $trades as trade (trade.id)}
+			<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)} />
+		{/each}
+	</div>
 </div>
