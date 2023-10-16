@@ -55,7 +55,7 @@
 	}
 </script>
 
-<div>
+<div class="w-108 min-h-full">
 	<div>trades: {trades.length}</div>
 	<div class="flex justify-between">
 		<div class="flex overflow-x-auto">
