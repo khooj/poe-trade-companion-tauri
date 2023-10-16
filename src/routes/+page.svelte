@@ -14,6 +14,12 @@
 	}
 </script>
 
+<nav>
+	<a href="/">home</a>
+	<a href="/about">about</a>
+	<a href="/outgoing-trades">outgoing</a>
+</nav>
+
 <h1 class="text-3xl font-bold underline">Home</h1>
 <p>this is the home page.</p>
 <button on:click={newOutgoingTrade}>New outgoing trade event</button>

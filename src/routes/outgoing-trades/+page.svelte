@@ -45,11 +45,10 @@
 			}
 		};
 	}
-
 </script>
 
 <div>
 	{#each $trades as trade (trade.id)}
-		<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)}/>
+		<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)} />
 	{/each}
 </div>
