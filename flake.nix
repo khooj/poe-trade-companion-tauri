@@ -55,6 +55,7 @@
               xorg.libXcursor
               xorg.libXi
               xorg.libXrandr
+              libayatana-appindicator
             ];
 
             shellHook = ''

@@ -1,5 +1,6 @@
 <script>
 	import { emit } from '@tauri-apps/api/event';
+	import { exit } from '@tauri-apps/api/process';
 
 	function newOutgoingTrade() {
 		emit('new-outgoing-trade', {
@@ -24,6 +25,10 @@
 			time: '19:49'
 		});
 	}
+
+	function exitProcess() {
+		exit(0);
+	}
 </script>
 
 <nav>
@@ -34,8 +39,9 @@
 
 <h1 class="text-3xl font-bold underline">Home</h1>
 <p>this is the home page.</p>
-<button on:click={newOutgoingTrade}>New outgoing trade event</button>
-<button on:click={newIncomingTrade}>New incoming trade event</button>
+<button class="border-2" on:click={newOutgoingTrade}>New outgoing trade event</button>
+<button class="border-2" on:click={newIncomingTrade}>New incoming trade event</button>
+<button class="border-2" on:click={exitProcess}>Exit</button>
 
 <style lang="postcss">
 	:global(html) {

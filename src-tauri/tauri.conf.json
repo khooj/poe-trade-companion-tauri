@@ -16,7 +16,14 @@
         "all": false,
         "show": true,
         "hide": true
+      },
+      "process": {
+        "exit": true
       }
+    },
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": true
     },
     "bundle": {
       "active": true,
