@@ -3,6 +3,7 @@
 	import { writable } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
+	import IncomingTrade from './IncomingTrade.svelte';
 
 	let trades = [];
 	let currentTrade = null;
@@ -71,37 +72,7 @@
 			<button class="w-12 h-6 border-2" on:click={removeCurrentTrade}>close</button>
 		</div>
 	</div>
-	<div class="flex flex-col">
-		{#if currentTrade}
-			<div class="flex">
-				<div class="border-2">
-					<div>buyer: {currentTrade.buyer} {currentTrade.id}</div>
-					<div>item: {currentTrade.item}</div>
-					<div>price: {currentTrade.price}</div>
-					<div>stash: {currentTrade.stash}</div>
-					<div>msg: {currentTrade.lastMessage}</div>
-				</div>
-				<div class="flex border-2">
-					<div>{currentTrade.time}</div>
-				</div>
-			</div>
-			<div class="flex">
-				<button class="w-12 h-6 border-2">chat</button>
-				<button class="w-12 h-6 border-2">inv</button>
-				<button class="w-12 h-6 border-2">trade</button>
-				<button class="w-12 h-6 border-2">kick</button>
-			</div>
-			<div class="flex flex-col">
-				<div class="flex">
-					<button class="w-36 h-12 border-2">ask to wait</button>
-					<button class="w-36 h-12 border-2">still interested?</button>
-					<button class="w-36 h-12 border-2">invite to party</button>
-				</div>
-				<div class="flex">
-					<button class="w-36 h-12 border-2">sold already</button>
-					<button class="w-72 h-12 border-2">thanks you</button>
-				</div>
-			</div>
-		{/if}
-	</div>
+	{#if currentTrade}
+		<IncomingTrade {...currentTrade} />
+	{/if}
 </div>

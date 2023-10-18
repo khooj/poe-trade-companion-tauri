@@ -1,7 +1,7 @@
 <script>
 	import OutgoingTradeElement from './Outgoing.svelte';
 	import { listen, emit } from '@tauri-apps/api/event';
-	import { writable} from 'svelte/store';
+	import { writable } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
 
@@ -40,10 +40,29 @@
 	function removeFromTrades(uuid) {
 		return () => {
 			$trades = $trades.filter((t) => t.id !== uuid);
+			emit('outgoing-trade-close', { id: uuid });
 			if ($trades.length === 0) {
 				emit('outgoing-trades-hide-window', {});
 			}
 		};
+	}
+
+	function callbacks(id) {
+		const m = [
+			['outgoing-trade-chat', 'onChatCallback'],
+			['outgoing-trade-hideout', 'onHideoutCallback'],
+			['outgoing-trade-kick', 'onKickCallback'],
+			['outgoing-trade-ty', 'onTyCallback']
+		];
+		return m.reduce(
+			(acc, [evType, prop]) => ({
+				...acc,
+				[prop]: () => {
+					emit(evType, { id });
+				}
+			}),
+			{}
+		);
 	}
 </script>
 
@@ -53,7 +72,7 @@
 	</div>
 	<div class="overflow-y-auto">
 		{#each $trades as trade (trade.id)}
-			<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)} />
+			<OutgoingTradeElement {...trade} onCloseCallback={removeFromTrades(trade.id)} {...callbacks(trade.id)} />
 		{/each}
 	</div>
 </div>
