@@ -11,9 +11,9 @@
 	export let onInviteCallback = () => {};
 	export let onTradeCallback = () => {};
 	export let onKickCallback = () => {};
-	export let onAskToWait = () => {};
-	export let onStillInterested = () => {};
-	export let onInviteToParty = () => {};
+	export let onAskToWaitCallback = () => {};
+	export let onStillInterestedCallback = () => {};
+	export let onInviteToPartyCallback = () => {};
 	export let onSoldAlreadyCallback = () => {};
 	export let onTyCallback = () => {};
 </script>
@@ -39,9 +39,9 @@
 	</div>
 	<div class="flex flex-col">
 		<div class="flex">
-			<button on:click={onAskToWait} class="w-36 h-12 border-2">ask to wait</button>
-			<button on:click={onStillInterested} class="w-36 h-12 border-2">still interested?</button>
-			<button on:click={onInviteToParty} class="w-36 h-12 border-2">invite to party</button>
+			<button on:click={onAskToWaitCallback} class="w-36 h-12 border-2">ask to wait</button>
+			<button on:click={onStillInterestedCallback} class="w-36 h-12 border-2">still interested?</button>
+			<button on:click={onInviteToPartyCallback} class="w-36 h-12 border-2">invite to party</button>
 		</div>
 		<div class="flex">
 			<button on:click={onSoldAlreadyCallback} class="w-36 h-12 border-2">sold already</button>

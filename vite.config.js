@@ -5,5 +5,11 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	test: {
 		include: ['src/**/*.{test,spec}.{js,ts}']
-	}
+	},
+	clearScreen: false,
+	server: {
+		port: 5174,
+		strictPort: true,
+	},
+	envPrefix: ["VITE_", "TAURI_"],
 });

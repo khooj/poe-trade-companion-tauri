@@ -54,6 +54,29 @@
 			emit('incoming-trades-hide-window', {});
 		}
 	}
+
+	function callbacks(id) {
+		const m = [
+			['incoming-trade-chat', 'onChatCallback'],
+			['incoming-trade-invite', 'onInviteCallback'],
+			['incoming-trade-trade', 'onTradeCallback'],
+			['incoming-trade-kick', 'onKickCallback'],
+			['incoming-trade-ask', 'onAskToWaitCallback'],
+			['incoming-trade-still', 'onStillInterestedCallback'],
+			['incoming-trade-invite-party', 'onInviteToPartyCallback'],
+			['incoming-trade-sold', 'onSoldAlreadyCallback'],
+			['incoming-trade-ty', 'onTyCallback']
+		];
+		return m.reduce(
+			(acc, [evType, prop]) => ({
+				...acc,
+				[prop]: () => {
+					emit(evType, { id });
+				}
+			}),
+			{}
+		);
+	}
 </script>
 
 <div class="w-108 min-h-full">
@@ -73,6 +96,6 @@
 		</div>
 	</div>
 	{#if currentTrade}
-		<IncomingTrade {...currentTrade} />
+		<IncomingTrade {...currentTrade} {...callbacks(currentTrade.id)}/>
 	{/if}
 </div>

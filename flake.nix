@@ -33,6 +33,7 @@
           librsvg
           llvmPackages_15.llvm
           nodejs_20
+          bun
         ];
         buildInputs = with pkgs; [
           (rust-bin.stable.${rust-version}.default.override {
