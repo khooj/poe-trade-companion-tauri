@@ -5,12 +5,12 @@ mod model;
 
 use serde::{Deserialize, Serialize};
 use std::{
-    sync::Arc,
+    sync::{Arc, Mutex},
     thread::{sleep, spawn},
     time::Duration,
 };
 use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayMenu, SystemTrayMenuItem};
-use tokio::sync::Mutex;
+// use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize)]
 struct Id {
@@ -22,12 +22,11 @@ struct AppState {
     model: Arc<Mutex<model::Model>>,
 }
 
-#[tauri::command]
-async fn spawn_outgoing_trade(state: tauri::State<'_, AppState>, msg: String) -> Result<(), ()> {
+#[tauri::command(async)]
+fn spawn_outgoing_trade(state: tauri::State<'_, AppState>, msg: String) {
     println!("outgoing tradechat command: {}", msg);
-    let r = state.model.lock().await.try_add(&msg).ok();
+    let r = state.model.lock().unwrap().try_add(&msg).ok();
     println!("try add result: {:?}", r);
-    Ok(())
 }
 
 fn main() {
@@ -41,23 +40,11 @@ fn main() {
     let model2 = Arc::clone(&model);
     tauri::Builder::default()
         .manage(AppState { model })
-        .setup(|app| {
+        .setup(move |app| {
             let app = app.app_handle();
-            tauri::async_runtime::spawn(async move {
-                let model = model2;
-
-                loop {
-                    tokio::time::sleep(Duration::from_millis(300)).await;
-                    let outgoing_trades = model.lock().await.get_new_outgoing();
-                    for i in outgoing_trades {
-                        app.emit_all("new-outgoing-trade", i).unwrap();
-                    }
-                }
+            model2.lock().unwrap().outgoing_subscribe(move |og| {
+                app.emit_all("new-outgoing-trade", og).unwrap();
             });
-            // let id = app.listen_global("outgoing-trade-chat", |event| {
-            //     println!("got outgoing event {:?}", event.payload());
-            // });
-            // app.unlisten(id);
             Ok(())
         })
         .system_tray(tray)
