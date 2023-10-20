@@ -1,6 +1,6 @@
 <script>
 	import { listen, emit } from '@tauri-apps/api/event';
-	import { writable } from 'svelte/store';
+	import { invoke } from '@tauri-apps/api/tauri';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
 	import IncomingTrade from './IncomingTrade.svelte';
@@ -39,6 +39,7 @@
 	function removeCurrentTrade() {
 		const idx = trades.findIndex((el) => el.id === currentTrade.id);
 		if (idx !== undefined) {
+			invoke('incoming_trade_remove', { id: currentTrade.id });
 			trades = [...trades.slice(0, idx), ...trades.slice(idx + 1)];
 			if (idx < trades.length) {
 				currentTrade = trades[idx];
@@ -57,21 +58,21 @@
 
 	function callbacks(id) {
 		const m = [
-			['incoming-trade-chat', 'onChatCallback'],
-			['incoming-trade-invite', 'onInviteCallback'],
-			['incoming-trade-trade', 'onTradeCallback'],
-			['incoming-trade-kick', 'onKickCallback'],
-			['incoming-trade-ask', 'onAskToWaitCallback'],
-			['incoming-trade-still', 'onStillInterestedCallback'],
-			['incoming-trade-invite-party', 'onInviteToPartyCallback'],
-			['incoming-trade-sold', 'onSoldAlreadyCallback'],
-			['incoming-trade-ty', 'onTyCallback']
+			['incoming_trade_chat', 'onChatCallback'],
+			['incoming_trade_invite', 'onInviteCallback'],
+			['incoming_trade_trade', 'onTradeCallback'],
+			['incoming_trade_kick', 'onKickCallback'],
+			['incoming_trade_ask', 'onAskToWaitCallback'],
+			['incoming_trade_still', 'onStillInterestedCallback'],
+			['incoming_trade_invite_party', 'onInviteToPartyCallback'],
+			['incoming_trade_sold', 'onSoldAlreadyCallback'],
+			['incoming_trade_ty', 'onTyCallback']
 		];
 		return m.reduce(
 			(acc, [evType, prop]) => ({
 				...acc,
 				[prop]: () => {
-					emit(evType, { id });
+					invoke(evType, { id });
 				}
 			}),
 			{}

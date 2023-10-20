@@ -1,17 +1,10 @@
 <script>
 	import { emit } from '@tauri-apps/api/event';
 	import { exit } from '@tauri-apps/api/process';
+	import { invoke } from '@tauri-apps/api/tauri';
 
 	function newOutgoingTrade() {
-		emit('new-outgoing-trade', {
-			id: self.crypto.randomUUID(),
-			itemName: "Einhar's Memory of Harvest Beasts",
-			playerName: 'ShaterJug',
-			time: '19:47',
-			costNumber: '1.5',
-			costCurrency: 'divine',
-			lastMessage: 'This player has DND enabled'
-		});
+		invoke('spawn_outgoing_trade', { msg: 'Hi tracechat test' });
 	}
 
 	function newIncomingTrade() {

@@ -1,6 +1,7 @@
 <script>
 	import OutgoingTradeElement from './Outgoing.svelte';
 	import { listen, emit } from '@tauri-apps/api/event';
+	import { invoke } from '@tauri-apps/api/tauri';
 	import { writable } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
@@ -11,7 +12,7 @@
 
 	onMount(async () => {
 		unlisten = await listen('new-outgoing-trade', (event) => {
-			console.log('new trade');
+			console.log(event);
 			trades.update((a) => {
 				a.push(event.payload);
 				return a;
@@ -40,7 +41,7 @@
 	function removeFromTrades(uuid) {
 		return () => {
 			$trades = $trades.filter((t) => t.id !== uuid);
-			emit('outgoing-trade-close', { id: uuid });
+			invoke('outgoing_trade_close', { id: uuid });
 			if ($trades.length === 0) {
 				emit('outgoing-trades-hide-window', {});
 			}
@@ -49,16 +50,16 @@
 
 	function callbacks(id) {
 		const m = [
-			['outgoing-trade-chat', 'onChatCallback'],
-			['outgoing-trade-hideout', 'onHideoutCallback'],
-			['outgoing-trade-kick', 'onKickCallback'],
-			['outgoing-trade-ty', 'onTyCallback']
+			['outgoing_trade_chat', 'onChatCallback'],
+			['outgoing_trade_hideout', 'onHideoutCallback'],
+			['outgoing_trade_kick', 'onKickCallback'],
+			['outgoing_trade_ty', 'onTyCallback']
 		];
 		return m.reduce(
 			(acc, [evType, prop]) => ({
 				...acc,
 				[prop]: () => {
-					emit(evType, { id });
+					invoke(evType, { id });
 				}
 			}),
 			{}
