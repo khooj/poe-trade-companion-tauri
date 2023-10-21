@@ -78,9 +78,9 @@ static ENG_MSGS: Lazy<Vec<Regex>> = Lazy::new(|| {
 });
 
 pub struct Model {
-    trades: HashMap<Uuid, TradeInfo>,
-    outgoing_callback: Box<dyn Fn(TradeInfo) + Send>,
-    incoming_callback: Box<dyn Fn(TradeInfo) + Send>,
+    trades: HashMap<String, TradeInfo>,
+    outgoing_callback: Box<dyn Fn(&TradeInfo) + Send>,
+    incoming_callback: Box<dyn Fn(&TradeInfo) + Send>,
 }
 
 impl Model {
@@ -94,14 +94,14 @@ impl Model {
 
     pub fn outgoing_subscribe<F>(&mut self, cb: F)
     where
-        F: Fn(TradeInfo) + Send + 'static,
+        F: Fn(&TradeInfo) + Send + 'static,
     {
         self.outgoing_callback = Box::new(cb);
     }
 
     pub fn incoming_subscribe<F>(&mut self, cb: F)
     where
-        F: Fn(TradeInfo) + Send + 'static,
+        F: Fn(&TradeInfo) + Send + 'static,
     {
         self.incoming_callback = Box::new(cb);
     }
@@ -112,39 +112,45 @@ impl Model {
         }
 
         let (trade_type, _, char) = type_person_info(line);
-        let mut matches = None;
-        for re in ENG_MSGS.iter() {
-            let c = re.captures(line);
-            if c.is_some() {
-                matches = c;
-                break;
-            }
-        }
-        if matches.is_none() {
-            return Err(ModelError::ParseError);
-        }
 
-        let matches = matches.unwrap();
-        let match_quality = ENG_QUALITY.captures(line);
-        let id = Uuid::new_v4();
-        let localtime = chrono::Local::now().time();
-        let trade_info = TradeInfo {
-            id: id.to_string(),
-            typ: trade_type,
-            cost_currency: matches.name("currency").map(|e| e.as_str().to_string()),
-            item_name: matches["item"].to_string(),
-            cost_number: matches.name("cost").map(|e| e.as_str().to_string()),
-            last_message: line.to_string(),
-            player_name: char,
-            time: localtime.format("%H:%M").to_string(),
-            league: matches["league"].to_string(),
-            stash: matches.name("stash").map(|e| e.as_str().to_string()),
-            left: matches.name("left").map(|e| e.as_str().to_string()),
-            top: matches.name("top").map(|e| e.as_str().to_string()),
-            // bugged
-            item2_name: match_quality.map(|m| m["item"].to_string()),
+        let trade_info = if let Some(v) = self.trades.values_mut().find(|v| v.player_name == char) {
+            v
+        } else {
+            let mut matches = None;
+            for re in ENG_MSGS.iter() {
+                let c = re.captures(line);
+                if c.is_some() {
+                    matches = c;
+                    break;
+                }
+            }
+            if matches.is_none() {
+                return Err(ModelError::ParseError);
+            }
+            let matches = matches.unwrap();
+            let match_quality = ENG_QUALITY.captures(line);
+            let id = Uuid::new_v4();
+            let localtime = chrono::Local::now().time();
+            let trade_info = TradeInfo {
+                id: id.to_string(),
+                typ: trade_type,
+                cost_currency: matches.name("currency").map(|e| e.as_str().to_string()),
+                item_name: matches["item"].to_string(),
+                cost_number: matches.name("cost").map(|e| e.as_str().to_string()),
+                last_message: String::new(),
+                player_name: char,
+                time: localtime.format("%H:%M").to_string(),
+                league: matches["league"].to_string(),
+                stash: matches.name("stash").map(|e| e.as_str().to_string()),
+                left: matches.name("left").map(|e| e.as_str().to_string()),
+                top: matches.name("top").map(|e| e.as_str().to_string()),
+                // bugged
+                item2_name: match_quality.map(|m| m["item"].to_string()),
+            };
+            self.trades.entry(id.to_string()).or_insert(trade_info)
         };
-        self.trades.insert(id, trade_info.clone());
+        trade_info.last_message = line.to_string();
+
         match trade_info.typ {
             TradeType::Incoming => (self.incoming_callback)(trade_info),
             TradeType::Outgoing => (self.outgoing_callback)(trade_info),
