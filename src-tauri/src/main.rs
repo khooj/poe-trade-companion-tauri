@@ -22,11 +22,6 @@ struct Id {
     id: String,
 }
 
-#[derive(Clone)]
-struct AppState {
-    model: Arc<Mutex<model::Model>>,
-}
-
 pub struct FileLineReader {
     byte_count: u64,
     sock: File,
@@ -64,7 +59,8 @@ impl FileLineReader {
             .expect("can't read new content");
         let mut lock = self.model.lock().unwrap();
         contents.lines().for_each(|l| {
-            lock.try_add(l);
+            // add log
+            let _ = lock.try_add(l);
         });
     }
 }
