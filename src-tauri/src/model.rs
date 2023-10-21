@@ -19,13 +19,17 @@ pub struct TradeInfo {
     item_name: String,
     player_name: String,
     time: String,
-    cost_number: String,
-    cost_currency: String,
     last_message: String,
     league: String,
-    stash: String,
-    left: String,
-    top: String,
+
+    item2_name: Option<String>,
+
+    cost_number: Option<String>,
+    cost_currency: Option<String>,
+
+    stash: Option<String>,
+    left: Option<String>,
+    top: Option<String>,
 }
 
 #[derive(thiserror::Error, Debug)]
@@ -54,8 +58,23 @@ fn type_person_info(line: &str) -> (TradeType, Option<String>, String) {
     (t, guild, char)
 }
 
-static ENG_INCOMING: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s]+) listed for (?<cost>[\d\.]+) (?<currency>[\w-]+) in (?<league>\w+) \(stash tab "(?<stash>.*)"; position: left (?<left>\d+), top (?<top>\d+)\)"#).unwrap()
+static ENG_STASH: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r#"\(stash tab "(?<stash>.*)"; position: left (?<left>\d+), top (?<top>\d+)\)"#)
+        .unwrap()
+});
+static ENG_QUALITY: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r#"level (?<lvl>\d+) (?<quality>\d+)% (?<item>.*)"#).unwrap());
+
+static ENG_MSGS: Lazy<Vec<Regex>> = Lazy::new(|| {
+    let a = Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s]+) listed for (?<cost>[\d\.]+) (?<currency>[\w-]+) in (?<league>\w+)"#).unwrap();
+    let b =
+        Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s]+) in (?<league>\w+)"#).unwrap();
+    let c = Regex::new(
+        r#"Hi, I'd like to buy your (?<item>[\w\s]+) for my (?<item2>[\w\s]+) in (?<league>\w+)"#,
+    )
+    .unwrap();
+
+    vec![a, b, c]
 });
 
 pub struct Model {
@@ -93,22 +112,37 @@ impl Model {
         }
 
         let (trade_type, _, char) = type_person_info(line);
-        let matches = ENG_INCOMING.captures(line).ok_or(ModelError::ParseError)?;
+        let mut matches = None;
+        for re in ENG_MSGS.iter() {
+            let c = re.captures(line);
+            if c.is_some() {
+                matches = c;
+                break;
+            }
+        }
+        if matches.is_none() {
+            return Err(ModelError::ParseError);
+        }
+
+        let matches = matches.unwrap();
+        let match_quality = ENG_QUALITY.captures(line);
         let id = Uuid::new_v4();
         let localtime = chrono::Local::now().time();
         let trade_info = TradeInfo {
             id: id.to_string(),
             typ: trade_type,
-            cost_currency: matches["currency"].to_string(),
+            cost_currency: matches.name("currency").map(|e| e.as_str().to_string()),
             item_name: matches["item"].to_string(),
-            cost_number: matches["cost"].to_string(),
+            cost_number: matches.name("cost").map(|e| e.as_str().to_string()),
             last_message: line.to_string(),
             player_name: char,
             time: localtime.format("%H:%M").to_string(),
             league: matches["league"].to_string(),
-            stash: matches["stash"].to_string(),
-            left: matches["left"].to_string(),
-            top: matches["top"].to_string(),
+            stash: matches.name("stash").map(|e| e.as_str().to_string()),
+            left: matches.name("left").map(|e| e.as_str().to_string()),
+            top: matches.name("top").map(|e| e.as_str().to_string()),
+            // bugged
+            item2_name: match_quality.map(|m| m["item"].to_string()),
         };
         self.trades.insert(id, trade_info.clone());
         match trade_info.typ {
@@ -127,10 +161,10 @@ mod tests {
     fn messages() -> Result<(), Box<dyn std::error::Error>> {
         let mut model = Model::new();
         model.outgoing_subscribe(|og| {
-            assert_eq!(og.cost_currency, "awakened-sextant");
+            assert_eq!(og.cost_currency, Some("awakened-sextant".to_string()));
         });
         model.incoming_subscribe(|og| {
-            assert_eq!(og.cost_currency, "awakened-sextant");
+            assert_eq!(og.cost_currency, Some("awakened-sextant".to_string()));
         });
 
         let msgs = [
