@@ -26,13 +26,13 @@
       myapp = "poe-trade-companion";
       rust-version = "1.72.1";
     in
-    flake-utils.lib.eachDefaultSystem (system:
+    flake-utils.lib.eachDefaultSystem (localSystem:
       let
         overlays = [ 
           rust-overlay.overlays.default 
           nixgl.overlay 
         ];
-        pkgs = import nixpkgs { inherit system overlays; };
+        pkgs = import nixpkgs { inherit localSystem overlays; };
         lib = pkgs.lib;
         rustToolchain = pkgs.rust-bin.stable.${rust-version}.default.override {
               extensions =
@@ -40,6 +40,10 @@
               targets = [ "x86_64-pc-windows-gnu" ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        crossSystem = "x86_64-w64-mingw32";
+        # crossSystem = "x86_64-windows";
+        pkgsCross = import nixpkgs { inherit crossSystem localSystem overlays; };
 
         libs = with pkgs; [
           webkitgtk
@@ -71,8 +75,11 @@
           #   src = craneLib.cleanCargoSource (craneLib.path ./src-tauri);
           # };
           poe-trade-companion = pkgs.callPackage ./default.nix { inherit craneLib; };
-          poe-trade-companion-win = pkgs.pkgsCross.mingwW64.callPackage ./default-win.nix { 
+          # current progress - can't find mingw64 linker
+          poe-trade-companion-win = pkgsCross.callPackage ./default-win.nix { 
             inherit craneLib;
+            # windows = pkgs.pkgsCross.mingwW64.windows;
+            # stdenv = pkgs.pkgsCross.mingwW64.stdenv;
           };
         };
         devShell = with pkgs;
