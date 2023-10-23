@@ -14,7 +14,7 @@ use std::{
     sync::{mpsc::channel, Arc, Mutex},
     time::Duration,
 };
-use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayMenu, SystemTrayMenuItem};
+use tauri::{CustomMenuItem, Manager};
 // use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -73,11 +73,11 @@ fn main() {
     let mut debouncer: Debouncer<RecommendedWatcher> =
         new_debouncer_opt(debouncer_config, tx).unwrap();
 
-    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let tray_menu = SystemTrayMenu::new()
-        .add_item(quit)
-        .add_native_item(SystemTrayMenuItem::Separator);
-    let tray = SystemTray::new().with_menu(tray_menu);
+    // let quit = CustomMenuItem::new("quit".to_string(), "Quit");
+    // let tray_menu = SystemTrayMenu::new()
+    //     .add_item(quit)
+    //     .add_native_item(SystemTrayMenuItem::Separator);
+    // let tray = SystemTray::new().with_menu(tray_menu);
 
     let model = Arc::new(Mutex::new(model::Model::new()));
     debouncer
@@ -109,7 +109,7 @@ fn main() {
             });
             Ok(())
         })
-        .system_tray(tray)
+        // .system_tray(tray)
         .invoke_handler(tauri::generate_handler![])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

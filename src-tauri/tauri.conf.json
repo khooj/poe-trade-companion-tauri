@@ -22,10 +22,6 @@
         "exit": true
       }
     },
-    "systemTray": {
-      "iconPath": "icons/icon.png",
-      "iconAsTemplate": true
-    },
     "bundle": {
       "active": true,
       "category": "DeveloperTool",
@@ -41,7 +37,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.khooj.poe-trade-companion",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -52,7 +48,7 @@
       },
       "resources": [],
       "shortDescription": "",
-      "targets": "all",
+      "targets": ["nsis", "app"],
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
