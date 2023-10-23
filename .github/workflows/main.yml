@@ -14,7 +14,7 @@ jobs:
       matrix:
         platform:
           - ubuntu-20.04
-          # - windows-latest
+          - windows-latest
     runs-on: ${{ matrix.platform }}
 
     steps:
@@ -36,22 +36,15 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      # - name: Sync node version and setup cache
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: 'lts/*'
-      #     cache: 'yarn' # Set this to npm, yarn or pnpm.
-
-      - name: setup bun runtime
-        uses: antongolub/action-setup-bun@v1
+      - name: Sync node version and setup cache
+        uses: actions/setup-node@v3
         with:
-          bun-version: '>=1.0'
-          bun-repo: 'oven-sh/bun'
-          cache: true
+          node-version: 'lts/*'
+          cache: 'yarn' # Set this to npm, yarn or pnpm.
 
       - name: Install frontend dependencies
         # If you don't have `beforeBuildCommand` configured you may want to build your frontend here too.
-        run: bun install # Change this to npm, yarn or pnpm.
+        run: yarn install # Change this to npm, yarn or pnpm.
 
       - name: Build the app
         uses: tauri-apps/tauri-action@v0
@@ -64,4 +57,3 @@ jobs:
           releaseBody: 'See the assets to download and install this version.'
           releaseDraft: true
           prerelease: false
-          tauriScript: 'bun tauri'

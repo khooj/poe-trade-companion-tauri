@@ -9,18 +9,35 @@
     };
     flake-utils.url = "github:numtide/flake-utils";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    crane = {
+      url = "github:ipetkov/crane";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, nixgl, ... }:
+  outputs = { self, nixpkgs, rust-overlay, flake-utils, nixgl, crane, ... }:
     let
       myapp = "poe-trade-companion";
       rust-version = "1.72.1";
     in
     flake-utils.lib.eachDefaultSystem (system:
       let
-        overlays = [ rust-overlay.overlays.default nixgl.overlay ];
+        overlays = [ 
+          rust-overlay.overlays.default 
+          nixgl.overlay 
+          (final: prev:  {
+            crane = crane;
+            craneLib = crane.lib.${system};
+          })
+        ];
         pkgs = import nixpkgs { inherit system overlays; };
         lib = pkgs.lib;
+        rustBins = pkgs.rust-bin.stable.${rust-version}.default.override {
+              extensions =
+                [ "rust-src" "llvm-tools-preview" "rust-analysis" ];
+              targets = [ "x86_64-pc-windows-gnu" ];
+        };
+        craneLib = crane.lib.${system};
 
         libs = with pkgs; [
           webkitgtk
@@ -33,17 +50,26 @@
           librsvg
           llvmPackages_15.llvm
           nodejs_20
-          bun
+          crate2nix
+          yarn
+          yarn2nix
         ];
         buildInputs = with pkgs; [
-          (rust-bin.stable.${rust-version}.default.override {
-              extensions =
-                [ "rust-src" "llvm-tools-preview" "rust-analysis" ];
-          })
+          rustBins
         ] ++ libs;
         nativeBuildInputs = with pkgs; [ pkg-config ];
       in
-      rec {
+      {
+        packages = {
+          # crate2nix can't generate files (panic on array index access)
+          # buildRustPackage requires chmod'ing sourceRoot directory and can't do it
+          # naersk doesn't work because of this issue https://github.com/nix-community/naersk/issues/310
+
+          # poe-trade-companion = craneLib.buildPackage {
+          #   src = craneLib.cleanCargoSource (craneLib.path ./src-tauri);
+          # };
+          poe-trade-companion = pkgs.callPackage ./default.nix {};
+        };
         devShell = with pkgs;
           mkShell {
             name = "rust";
