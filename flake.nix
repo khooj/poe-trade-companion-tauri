@@ -8,7 +8,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     flake-utils.url = "github:numtide/flake-utils";
-    rust-overlay.url = "github:oxalica/rust-overlay";
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
     crane = {
       url = "github:ipetkov/crane";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -25,19 +31,15 @@
         overlays = [ 
           rust-overlay.overlays.default 
           nixgl.overlay 
-          (final: prev:  {
-            crane = crane;
-            craneLib = crane.lib.${system};
-          })
         ];
         pkgs = import nixpkgs { inherit system overlays; };
         lib = pkgs.lib;
-        rustBins = pkgs.rust-bin.stable.${rust-version}.default.override {
+        rustToolchain = pkgs.rust-bin.stable.${rust-version}.default.override {
               extensions =
                 [ "rust-src" "llvm-tools-preview" "rust-analysis" ];
               targets = [ "x86_64-pc-windows-gnu" ];
         };
-        craneLib = crane.lib.${system};
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
         libs = with pkgs; [
           webkitgtk
@@ -55,7 +57,7 @@
           yarn2nix
         ];
         buildInputs = with pkgs; [
-          rustBins
+          rustToolchain
         ] ++ libs;
         nativeBuildInputs = with pkgs; [ pkg-config ];
       in
@@ -68,7 +70,10 @@
           # poe-trade-companion = craneLib.buildPackage {
           #   src = craneLib.cleanCargoSource (craneLib.path ./src-tauri);
           # };
-          poe-trade-companion = pkgs.callPackage ./default.nix {};
+          poe-trade-companion = pkgs.callPackage ./default.nix { inherit craneLib; };
+          poe-trade-companion-win = pkgs.pkgsCross.mingwW64.callPackage ./default-win.nix { 
+            inherit craneLib;
+          };
         };
         devShell = with pkgs;
           mkShell {

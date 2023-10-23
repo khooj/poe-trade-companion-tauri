@@ -4,12 +4,9 @@
 , freetype
 , gtk3
 , mkYarnPackage
-, pkg-config
-, rustPlatform
-, webkitgtk
-, libsoup
-, cargo_target ? "x86_64-unknown-linux-gnu"
-, depsBuildBuild ? []
+# , pkgsCross
+# , mingw_w64_pthreads
+, windows
 }:
 
 let
@@ -86,14 +83,17 @@ let
 	];
 
 	commonArgs = {
-		inherit depsBuildBuild;
-		CARGO_BUILD_TARGET = cargo_target;
+		strictDeps = true;
+		doCheck = false;
 		src = lib.cleanSourceWith {
 			src = craneLib.path ./src-tauri;
 			filter = sourcesFilter;
 		};
-		nativeBuildInputs = [ pkg-config ];
-		buildInputs = [ libsoup freetype gtk3 webkitgtk ];
+		nativeBuildInputs = [ ];
+		buildInputs = [ windows.mingw_w64_pthreads ];
+		# depsBuildBuild = with pkgsCross; [ mingwW64.stdenv.cc mingwW64.windows.pthreads ];
+		# depsBuildBuild = [ windows.pthreads ];
+		CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
 	};
 	cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
 
@@ -101,11 +101,10 @@ let
 in
 with craneLib;
 buildPackage (commonArgs // {
-	inherit cargoArtifacts depsBuildBuild;
-	CARGO_BUILD_TARGET = cargo_target;
-	postPatch = ''
-		substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "${frontend-build}",'
-	'';
+	inherit cargoArtifacts ;
+	# postPatch = ''
+	# 	substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "${frontend-build}",'
+	# '';
 	postInstall = ''
 		mv $out/bin/app $out/bin/poe-trade-companion
 	'';
