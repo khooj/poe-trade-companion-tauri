@@ -1,38 +1,43 @@
 { lib
 , craneLib
+, mkYarnPackage
+, fetchYarnDeps
 # , pkgsCross
 # , mingw_w64_pthreads
-, windows
-, stdenv
+# , windows
+# , stdenv
 # , buildPackages
+# , targetPackages
+, pthreads
+, cc
 }:
 
 let
-	# pname = "poe-trade-companion-tauri";
-	# version = "unstable-2023-10-23";
+	pname = "poe-trade-companion-tauri";
+	version = "unstable-2023-10-23";
 
-	# src = ./.;
+	src = ./.;
 
-	# frontend-build = mkYarnPackage {
-	# 	inherit version src;
-	# 	pname = "poe-trade-companion-tauri-ui";
+	frontend-build = mkYarnPackage {
+		inherit version src;
+		pname = "poe-trade-companion-tauri-ui";
 
-	# 	offlineCache = fetchYarnDeps {
-	# 		yarnLock = src + "/yarn.lock";
-	# 		sha256 = "sha256-lT2Ny11ABe5nou6OauZ1UjI959PlJZxMoxPRvZMjFRY=";
-	# 	};
+		offlineCache = fetchYarnDeps {
+			yarnLock = src + "/yarn.lock";
+			sha256 = "sha256-lT2Ny11ABe5nou6OauZ1UjI959PlJZxMoxPRvZMjFRY=";
+		};
 
-	# 	packageJSON = ./package.json;
+		packageJSON = ./package.json;
 
-	# 	buildPhase = ''
-	# 		export HOME=$(mktemp -d)
-	# 		yarn --offline run build
-	# 		cp -r deps/poe-trade-companion-tauri/build $out
-	# 	'';
+		buildPhase = ''
+			export HOME=$(mktemp -d)
+			yarn --offline run build
+			cp -r deps/poe-trade-companion-tauri/build $out
+		'';
 
-	# 	distPhase = "true";
-	# 	dontInstall = true;
-	# };
+		distPhase = "true";
+		dontInstall = true;
+	};
 
 # rustPlatform.buildRustPackage {
 # 	inherit version src pname;
@@ -78,6 +83,7 @@ let
 		tauriConfFilter
 		craneLib.filterCargoSources
 		(path: _type: builtins.match ".*png$" path != null)
+		(path: _type: builtins.match ".*ico$" path != null)
 	];
 
 	commonArgs = {
@@ -90,8 +96,8 @@ let
 		# nativeBuildInputs = [ ];
 		# buildInputs = [ windows.mingw_w64_pthreads ];
 		# depsBuildBuild = with pkgsCross; [ mingwW64.stdenv.cc mingwW64.windows.pthreads ];
-		depsBuildBuild = [ ]; 
-		# CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER = "${stdenv.cc.targetPrefix}cc";
+		depsBuildBuild = [ cc ]; 
+		CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS = "-L ${pthreads}/lib";
 		CARGO_BUILD_TARGET = "x86_64-pc-windows-gnu";
 	};
 	cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
@@ -101,11 +107,11 @@ in
 with craneLib;
 buildPackage (commonArgs // {
 	inherit cargoArtifacts ;
-	# postPatch = ''
-	# 	substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "${frontend-build}",'
-	# '';
-	postInstall = ''
-		mv $out/bin/app $out/bin/poe-trade-companion
+	postPatch = ''
+		substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "${frontend-build}",'
 	'';
+	# postInstall = ''
+	# 	mv $out/bin/app $out/bin/poe-trade-companion
+	# '';
 	cargoBuildCommand = "cargo build --profile release --features custom-protocol";
 })

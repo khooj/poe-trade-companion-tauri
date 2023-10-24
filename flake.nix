@@ -76,8 +76,10 @@
           # };
           poe-trade-companion = pkgs.callPackage ./default.nix { inherit craneLib; };
           # current progress - can't find mingw64 linker
-          poe-trade-companion-win = pkgsCross.callPackage ./default-win.nix { 
+          poe-trade-companion-win = pkgs.callPackage ./default-win.nix { 
             inherit craneLib;
+            pthreads = pkgs.pkgsCross.mingwW64.windows.mingw_w64_pthreads;
+            cc = pkgs.pkgsCross.mingwW64.stdenv.cc;
             # windows = pkgs.pkgsCross.mingwW64.windows;
             # stdenv = pkgs.pkgsCross.mingwW64.stdenv;
           };
