@@ -31,13 +31,17 @@
         overlays = [ 
           rust-overlay.overlays.default 
           nixgl.overlay 
+          (final: prev: {
+            xwin = final.callPackage ./xwin.nix {};
+            xwin-output = final.callPackage ./xwin-output.nix {};
+          })
         ];
         pkgs = import nixpkgs { inherit localSystem overlays; };
         lib = pkgs.lib;
         rustToolchain = pkgs.rust-bin.stable.${rust-version}.default.override {
               extensions =
                 [ "rust-src" "llvm-tools-preview" "rust-analysis" ];
-              targets = [ "x86_64-pc-windows-gnu" ];
+              targets = [ "x86_64-pc-windows-gnu" "x86_64-pc-windows-msvc" ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
@@ -83,6 +87,10 @@
             # windows = pkgs.pkgsCross.mingwW64.windows;
             # stdenv = pkgs.pkgsCross.mingwW64.stdenv;
           };
+          poe-trade-companion-msvc = pkgs.callPackage ./default-win-msvc.nix {
+            inherit craneLib;
+          };
+          xwin-output = pkgs.xwin-output;
         };
         devShell = with pkgs;
           mkShell {
