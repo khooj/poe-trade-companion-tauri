@@ -41,7 +41,7 @@
         rustToolchain = pkgs.rust-bin.stable.${rust-version}.default.override {
               extensions =
                 [ "rust-src" "llvm-tools-preview" "rust-analysis" ];
-              targets = [ "x86_64-pc-windows-gnu" "x86_64-pc-windows-msvc" ];
+              targets = [ "x86_64-pc-windows-msvc" ];
         };
         craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 

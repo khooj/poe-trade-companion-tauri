@@ -7,7 +7,7 @@
 
 	let trades = [];
 	let currentTrade = null;
-	let unlisten, unlistenShow, unlistenHide;
+	let unlisten, unlistenShow, unlistenHide, unlistenMoved;
 	const incomingWindow = WebviewWindow.getByLabel('incoming');
 
 	onMount(async () => {
@@ -28,9 +28,14 @@
 		unlistenHide = await listen('incoming-trades-hide-window', (_e) => {
 			incomingWindow?.hide();
 		});
+
+		unlistenMoved = incomingWindow?.onMoved((payload) => {
+			console.log(payload);
+		});
 	});
 
 	onDestroy(() => {
+		unlistenMoved();
 		unlistenHide();
 		unlistenShow();
 		unlisten();
