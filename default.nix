@@ -1,4 +1,5 @@
 { lib
+, stdenv
 , craneLib
 , fetchYarnDeps
 , freetype
@@ -8,19 +9,29 @@
 , rustPlatform
 , webkitgtk
 , libsoup
-, cargo_target ? "x86_64-unknown-linux-gnu"
-, depsBuildBuild ? []
+, lld
+, xwin-output
+, target ? "linux"
 }:
 
 let
 	pname = "poe-trade-companion-tauri";
 	version = "unstable-2023-10-23";
 
-	src = ./.;
+	frontendFilter = combineFilters [
+		(path: _type: builtins.match "^src$" path != null)
+		(path: _type: builtins.match ".*json$" path != null)
+	];
+
+	src = lib.cleanSourceWith {
+		src = ./.;
+		filter = frontendFilter;
+	};
 
 	frontend-build = mkYarnPackage {
-		inherit version src;
+		inherit version;
 		pname = "poe-trade-companion-tauri-ui";
+		src = ./.;
 
 		offlineCache = fetchYarnDeps {
 			yarnLock = src + "/yarn.lock";
@@ -39,75 +50,53 @@ let
 		dontInstall = true;
 	};
 
-# rustPlatform.buildRustPackage {
-# 	inherit version src pname;
-
-# 	sourceRoot = "${src}/src-tauri";
-
-# 	dontMakeSourcesWritable = true;
-
-# 	postUnpack = ''
-# 	'';
-
-# 	unpackPhase = "true";
-
-# 	cargoLock = {
-# 		lockFile = ./src-tauri/Cargo.lock;
-# 		outputHashes = {
-# 			"tauri-plugin-log-0.0.0" = "sha256-AQt2cJ3ZP0Ffme2lfThcjSUA6FDE6srJryaNeMRXpz0=";
-# 		};
-# 	};
-
-# 	postPatch = ''
-# 		cp ${./src-tauri/Cargo.lock} Cargo.lock
-# 		mkdir -p frontend-build
-# 		cp -R ${frontend-build} frontend-build
-# 		# ls -la .
-# 		substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "frontend-build",'
-# 	'';
-
-# 	buildInputs = [ gtk3 webkitgtk freetype ];
-# 	nativeBuildInputs = [ pkg-config ];
-
-# 	checkFlags = [];
-
-# 	postInstall = ''
-# 		mv $out/bin/app $out/bin/poe-trade-companion
-# 	'';
-# }
+	isLinuxTarget = target == "linux";
+	isWindowsTarget = target == "windows";
 
 	tauriConfFilter = path: _type: builtins.match ".*tauri.conf.json$" path != null;
-	# sourcesFilter = path: type: (tauriConfFilter path type) || (craneLib.filterCargoSources path type);
-	filtersCombinator = filters: path: type: builtins.any (x: x path type) filters;
-	sourcesFilter = filtersCombinator [
+	combineFilters = filters: path: type: builtins.any (x: x path type) filters;
+	sourcesFilter = combineFilters [
 		tauriConfFilter
 		craneLib.filterCargoSources
 		(path: _type: builtins.match ".*png$" path != null)
+		(path: _type: builtins.match ".*ico$" path != null)
 	];
 
 	commonArgs = {
-		inherit depsBuildBuild;
-		CARGO_BUILD_TARGET = cargo_target;
+		strictDeps = true;
+		doCheck = false;
 		src = lib.cleanSourceWith {
 			src = craneLib.path ./src-tauri;
 			filter = sourcesFilter;
 		};
-		nativeBuildInputs = [ pkg-config ];
-		buildInputs = [ libsoup freetype gtk3 webkitgtk ];
-	};
-	cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {
+		nativeBuildInputs = [ pkg-config lld ];
+		buildInputs = [] ++ lib.optionals isLinuxTarget [ 
+			libsoup 
+			freetype 
+			gtk3 
+			webkitgtk 
+		];
+		CARGO_BUILD_TARGET = if isWindowsTarget then "x86_64-pc-windows-msvc" else "x86_64-unknown-linux-gnu";
+		CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "lld";
+		# CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER = "lld";
+		CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = lib.optional isWindowsTarget ((builtins.foldl' (x: y: x + "-Lnative=${xwin-output}${y} ") "" [
+			"/crt/lib/x86_64"
+			"/sdk/lib/um/x86_64"
+			"/sdk/lib/ucrt/x86_64"
+		]) + " -l bufferoverflow");
 
-	});
+	};
+	cargoArtifacts = craneLib.buildDepsOnly (commonArgs // {});
+	ext = lib.optionalString isWindowsTarget ".exe";
 in
 with craneLib;
 buildPackage (commonArgs // {
-	inherit cargoArtifacts depsBuildBuild;
-	CARGO_BUILD_TARGET = cargo_target;
+	inherit cargoArtifacts;
 	postPatch = ''
 		substituteInPlace tauri.conf.json --replace '"distDir": "../public",' '"distDir": "${frontend-build}",'
 	'';
 	postInstall = ''
-		mv $out/bin/app $out/bin/poe-trade-companion
+		mv $out/bin/app${builtins.toString ext} $out/bin/poe-trade-companion${builtins.toString ext}
 	'';
 	cargoBuildCommand = "cargo build --profile release --features custom-protocol";
 })

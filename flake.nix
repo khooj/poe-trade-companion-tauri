@@ -75,22 +75,11 @@
           # buildRustPackage requires chmod'ing sourceRoot directory and can't do it
           # naersk doesn't work because of this issue https://github.com/nix-community/naersk/issues/310
 
-          # poe-trade-companion = craneLib.buildPackage {
-          #   src = craneLib.cleanCargoSource (craneLib.path ./src-tauri);
-          # };
-          poe-trade-companion = pkgs.callPackage ./default.nix { inherit craneLib; };
-          # current progress - can't find mingw64 linker
-          poe-trade-companion-win = pkgs.callPackage ./default-win.nix { 
+          app = pkgs.callPackage ./default.nix { inherit craneLib; };
+          app-win = pkgs.callPackage ./default.nix {
             inherit craneLib;
-            pthreads = pkgs.pkgsCross.mingwW64.windows.mingw_w64_pthreads;
-            cc = pkgs.pkgsCross.mingwW64.stdenv.cc;
-            # windows = pkgs.pkgsCross.mingwW64.windows;
-            # stdenv = pkgs.pkgsCross.mingwW64.stdenv;
+            target = "windows";
           };
-          poe-trade-companion-msvc = pkgs.callPackage ./default-win-msvc.nix {
-            inherit craneLib;
-          };
-          xwin-output = pkgs.xwin-output;
         };
         devShell = with pkgs;
           mkShell {
