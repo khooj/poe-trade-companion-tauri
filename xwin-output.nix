@@ -25,8 +25,6 @@ stdenv.mkDerivation {
 		runHook postInstall
 	'';
 
-	impureEnvVars = lib.fetchers.proxyImpureEnvVars;
-
 	outputHashMode = "recursive";
 	outputHashAlgo = "sha256";
 	outputHash = "sha256-FwI0i9c9pO9jO55MCYGF87nFFRxgQSWu+aSosUctoIE=";

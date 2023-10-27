@@ -1,10 +1,8 @@
 { lib
 , stdenv
 , craneLib
-, fetchYarnDeps
 , freetype
 , gtk3
-, mkYarnPackage
 , pkg-config
 , rustPlatform
 , webkitgtk
@@ -12,47 +10,14 @@
 , lld
 , libayatana-appindicator
 , xwin-output
+, poe-trade-companion-ui
 , target ? "linux"
 }:
 
 let
-	pname = "poe-trade-companion-tauri";
-	version = "unstable-2023-10-23";
-
-	frontendFilter = combineFilters [
-		(path: _type: builtins.match "^src$" path != null)
-		(path: _type: builtins.match ".*json$" path != null)
-	];
-
-	src = lib.cleanSourceWith {
-		src = ./.;
-		filter = frontendFilter;
-	};
-
-	frontend-build = mkYarnPackage {
-		inherit version;
-		pname = "poe-trade-companion-tauri-ui";
-		src = ./.;
-
-		offlineCache = fetchYarnDeps {
-			yarnLock = src + "/yarn.lock";
-			sha256 = "sha256-lT2Ny11ABe5nou6OauZ1UjI959PlJZxMoxPRvZMjFRY=";
-		};
-
-		packageJSON = ./package.json;
-
-		buildPhase = ''
-			export HOME=$(mktemp -d)
-			yarn --offline run build
-			cp -r deps/poe-trade-companion-tauri/build $out
-		'';
-
-		distPhase = "true";
-		dontInstall = true;
-	};
-
 	isLinuxTarget = target == "linux";
 	isWindowsTarget = target == "windows";
+	frontend-build = poe-trade-companion-ui;
 
 	tauriConfFilter = path: _type: builtins.match ".*tauri.conf.json$" path != null;
 	combineFilters = filters: path: type: builtins.any (x: x path type) filters;

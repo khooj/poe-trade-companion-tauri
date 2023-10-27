@@ -4,6 +4,7 @@
 mod model;
 mod settings;
 
+use log::{debug, error};
 use notify_debouncer_mini::{
     new_debouncer_opt, notify::*, Config as NotifyDebouncerConfig, DebouncedEvent, Debouncer,
 };
@@ -18,8 +19,10 @@ use std::{
     },
     time::Duration,
 };
-use tauri::{Manager, PhysicalPosition, State};
-use log::{debug, error};
+use tauri::{
+    CustomMenuItem, Manager, PhysicalPosition, State, SystemTray, SystemTrayMenu,
+    SystemTrayMenuItem,
+};
 // use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -126,7 +129,7 @@ fn init_config(
     app: &mut tauri::App,
     tx: Sender<Result<Vec<DebouncedEvent>>>,
     model: Arc<Mutex<model::Model>>,
-) -> (FileLineReader, Debouncer<INotifyWatcher>) {
+) -> (FileLineReader, Debouncer<RecommendedWatcher>) {
     let base = app.path_resolver().app_config_dir().unwrap_or(
         app.path_resolver()
             .app_data_dir()
@@ -176,6 +179,8 @@ fn init_config(
     (file_line_reader, debouncer)
 }
 
+fn setup_systemtray(app: &mut tauri::App) {}
+
 #[tauri::command]
 fn update_position_stx(stx: State<AppState>, position: (i32, i32), window: String) {
     let mut s = stx.stx.lock().unwrap();
@@ -207,6 +212,10 @@ fn main() {
 
     let model = Arc::new(Mutex::new(model::Model::new()));
 
+    let quit = CustomMenuItem::new("quit".to_string(), "Quit");
+    let tray_menu = SystemTrayMenu::new().add_item(quit);
+    let tray = SystemTray::new().with_menu(tray_menu);
+
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
         .setup(move |app| {
@@ -216,19 +225,11 @@ fn main() {
             Ok(())
         })
         // .system_tray(tray)
-        .invoke_handler(tauri::generate_handler![update_position_stx, update_logpath_stx])
+        .invoke_handler(tauri::generate_handler![
+            update_position_stx,
+            update_logpath_stx
+        ])
+        .system_tray(tray)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-/*Object
-
-event: "tauri://move"
-
-id: 4151762018
-
-payload: r {type: "Physical", x: 0, y: 61}
-
-windowLabel: "incoming"
-
-Object Prototype */

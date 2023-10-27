@@ -34,6 +34,7 @@
           (final: prev: {
             xwin = final.callPackage ./xwin.nix {};
             xwin-output = final.callPackage ./xwin-output.nix {};
+            poe-trade-companion-ui = final.callPackage ./frontend.nix {};
           })
         ];
         pkgs = import nixpkgs { inherit localSystem overlays; };
@@ -63,6 +64,7 @@
           crate2nix
           yarn
           yarn2nix
+          nix-update
         ];
         buildInputs = with pkgs; [
           rustToolchain
@@ -80,6 +82,7 @@
             inherit craneLib;
             target = "windows";
           };
+          frontend = pkgs.poe-trade-companion-ui;
         };
         devShell = with pkgs;
           mkShell {
