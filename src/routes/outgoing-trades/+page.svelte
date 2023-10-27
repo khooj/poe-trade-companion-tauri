@@ -5,9 +5,10 @@
 	import { writable } from 'svelte/store';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
+	import _ from 'lodash';
 
 	const trades = writable([]);
-	let unlisten, unlistenShow, unlistenHide;
+	let unlisten, unlistenShow, unlistenHide, unlistenMoved;
 	const outgoingTradesWindow = WebviewWindow.getByLabel('outgoing');
 
 	onMount(async () => {
@@ -30,9 +31,16 @@
 		unlistenHide = await listen('outgoing-trades-hide-window', (_e) => {
 			outgoingTradesWindow.hide();
 		});
+
+		unlistenMoved = outgoingTradesWindow?.onMoved(
+			_.debounce(({ payload }) => {
+				invoke('update_position_stx', { position: [payload.x, payload.y], window: 'outgoing' });
+			}, 1000)
+		);
 	});
 
 	onDestroy(() => {
+		unlistenMoved();
 		unlistenHide();
 		unlistenShow();
 		unlisten();

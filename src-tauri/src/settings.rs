@@ -21,6 +21,7 @@ impl Settings {
         let f = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)
+            .create(true)
             .open(p)?;
         let buf = std::io::BufWriter::new(f);
         Ok(to_writer(buf, self)?)

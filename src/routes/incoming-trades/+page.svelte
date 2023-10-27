@@ -3,6 +3,7 @@
 	import { invoke } from '@tauri-apps/api/tauri';
 	import { onDestroy, onMount } from 'svelte';
 	import { WebviewWindow } from '@tauri-apps/api/window';
+	import _ from 'lodash';
 	import IncomingTrade from './IncomingTrade.svelte';
 
 	let trades = [];
@@ -29,9 +30,11 @@
 			incomingWindow?.hide();
 		});
 
-		unlistenMoved = incomingWindow?.onMoved((payload) => {
-			console.log(payload);
-		});
+		unlistenMoved = incomingWindow?.onMoved(
+			_.debounce(({ payload }) => {
+				invoke('update_position_stx', { position: [payload.x, payload.y], window: 'incoming' });
+			}, 1000)
+		);
 	});
 
 	onDestroy(() => {
@@ -91,7 +94,9 @@
 		<div class="flex overflow-x-auto">
 			{#each trades as trade, i (trade.id)}
 				{#if currentTrade && currentTrade.id === trade.id}
-					<button class="w-12 h-6 border-2 bg-slate-200" on:click={() => (currentTrade = trade)}>{i}</button>
+					<button class="w-12 h-6 border-2 bg-slate-200" on:click={() => (currentTrade = trade)}
+						>{i}</button
+					>
 				{:else}
 					<button class="w-12 h-6 border-2" on:click={() => (currentTrade = trade)}>{i}</button>
 				{/if}
@@ -102,6 +107,6 @@
 		</div>
 	</div>
 	{#if currentTrade}
-		<IncomingTrade {...currentTrade} {...callbacks(currentTrade.id)}/>
+		<IncomingTrade {...currentTrade} {...callbacks(currentTrade.id)} />
 	{/if}
 </div>

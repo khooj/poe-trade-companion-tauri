@@ -19,6 +19,7 @@ use std::{
     time::Duration,
 };
 use tauri::{Manager, PhysicalPosition, State};
+use log::{debug, error};
 // use tokio::sync::Mutex;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -147,8 +148,6 @@ fn init_config(
         ))
         .expect("can't set incoming window position");
 
-    let apph = app.app_handle();
-
     app.get_window("outgoing")
         .unwrap()
         .set_position(PhysicalPosition::new(
@@ -185,7 +184,11 @@ fn update_position_stx(stx: State<AppState>, position: (i32, i32), window: Strin
     } else {
         s.outgoing_position = position;
     }
-    s.save(&stx.cfg_path).expect("can't save settings");
+    let r = s.save(&stx.cfg_path);
+    if r.is_err() {
+        error!("can't save stx: {}", r.unwrap_err());
+    }
+    debug!("called update_position_stx {:?} {}", position, window);
 }
 
 fn main() {
@@ -206,3 +209,15 @@ fn main() {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
+
+/*Object
+
+event: "tauri://move"
+
+id: 4151762018
+
+payload: r {type: "Physical", x: 0, y: 61}
+
+windowLabel: "incoming"
+
+Object Prototype */
