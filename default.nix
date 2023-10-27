@@ -10,6 +10,7 @@
 , webkitgtk
 , libsoup
 , lld
+, libayatana-appindicator
 , xwin-output
 , target ? "linux"
 }:
@@ -75,10 +76,10 @@ let
 			freetype 
 			gtk3 
 			webkitgtk 
+			libayatana-appindicator
 		];
 		CARGO_BUILD_TARGET = if isWindowsTarget then "x86_64-pc-windows-msvc" else "x86_64-unknown-linux-gnu";
 		CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_LINKER = "lld";
-		# CARGO_TARGET_X86_64_UNKNOWN_LINUX_GNU_LINKER = "lld";
 		CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS = lib.optional isWindowsTarget ((builtins.foldl' (x: y: x + "-Lnative=${xwin-output}${y} ") "" [
 			"/crt/lib/x86_64"
 			"/sdk/lib/um/x86_64"
