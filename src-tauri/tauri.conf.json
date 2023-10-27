@@ -20,10 +20,16 @@
       },
       "process": {
         "exit": true
+      },
+      "dialog": {
+        "open": true
       }
     },
+    "systemTray": {
+      "iconPath": "icons/icon.png"
+    },
     "bundle": {
-      "active": true,
+      "active": false,
       "category": "DeveloperTool",
       "copyright": "",
       "deb": {
@@ -88,6 +94,19 @@
         "label": "incoming",
         "title": "incoming-trades",
         "url": "/incoming-trades",
+        "height": 320,
+        "width": 435,
+        "visible": false,
+        "fullscreen": false,
+        "resizable": false,
+        "closable": false,
+        "minimizable": false,
+        "maximizable": false
+      },
+      {
+        "label": "settings",
+        "title": "settings",
+        "url": "/settings",
         "height": 320,
         "width": 435,
         "visible": false,

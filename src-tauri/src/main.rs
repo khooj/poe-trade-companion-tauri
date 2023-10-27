@@ -191,6 +191,17 @@ fn update_position_stx(stx: State<AppState>, position: (i32, i32), window: Strin
     debug!("called update_position_stx {:?} {}", position, window);
 }
 
+#[tauri::command]
+fn update_logpath_stx(stx: State<AppState>, logpath: String) {
+    let mut s = stx.stx.lock().unwrap();
+    s.logpath = logpath;
+    let r = s.save(&stx.cfg_path);
+    if r.is_err() {
+        error!("can't save stx: {}", r.unwrap_err());
+    }
+    debug!("called update_logpath_stx {}", s.logpath);
+}
+
 fn main() {
     let (tx, rx) = channel();
 
@@ -205,7 +216,7 @@ fn main() {
             Ok(())
         })
         // .system_tray(tray)
-        .invoke_handler(tauri::generate_handler![update_position_stx])
+        .invoke_handler(tauri::generate_handler![update_position_stx, update_logpath_stx])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
