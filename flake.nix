@@ -65,6 +65,7 @@
           yarn
           yarn2nix
           nix-update
+          cargo-deny
         ];
         buildInputs = with pkgs; [
           rustToolchain
