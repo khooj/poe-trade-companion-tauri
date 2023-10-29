@@ -1,9 +1,13 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod file_line_reader;
 mod model;
 mod settings;
+#[cfg(test)]
+mod test_utilities;
 
+use file_line_reader::FileLineReader;
 use log::{debug, error};
 use notify_debouncer_mini::{
     new_debouncer_opt, notify::*, Config as NotifyDebouncerConfig, DebouncedEvent, Debouncer,
@@ -30,75 +34,10 @@ struct Id {
     id: String,
 }
 
-pub struct FileLineReader {
-    byte_count: u64,
-    sock: Option<File>,
-    model: Arc<Mutex<model::Model>>,
-}
-
-impl FileLineReader {
-    pub fn new(model: Arc<Mutex<model::Model>>, fp: &str) -> Self {
-        let s = File::open(fp).ok();
-        let size;
-        if s.is_some() {
-            s.as_ref()
-                .unwrap()
-                .seek(SeekFrom::End(0))
-                .expect("can't seek to file end");
-            size = s
-                .as_ref()
-                .unwrap()
-                .metadata()
-                .expect("can't get file metadata")
-                .len();
-        } else {
-            size = 0;
-        }
-
-        FileLineReader {
-            byte_count: size,
-            sock: s,
-            model,
-        }
-    }
-
-    pub fn process_new_content(&mut self) {
-        if self.sock.is_none() {
-            return;
-        }
-
-        let new_size = self
-            .sock
-            .as_ref()
-            .unwrap()
-            .metadata()
-            .expect("can't get file metadata in new content")
-            .len();
-        if new_size <= self.byte_count {
-            // probably file truncated or nothing new added, just update byte_count and wait for new call
-            self.byte_count = new_size;
-            return;
-        }
-        self.byte_count = new_size;
-
-        let mut contents = String::new();
-        self.sock
-            .as_ref()
-            .unwrap()
-            .read_to_string(&mut contents)
-            .expect("can't read new content");
-        let mut lock = self.model.lock().unwrap();
-        contents.lines().for_each(|l| {
-            // add log
-            let _ = lock.try_add(l);
-        });
-    }
-}
-
 fn subscribe_new_trades(
     app: tauri::AppHandle,
     model: Arc<Mutex<model::Model>>,
-    mut file_line_reader: FileLineReader,
+    mut file_line_reader: FileLineReader<File>,
     rx: Receiver<Result<Vec<DebouncedEvent>>>,
 ) {
     let apph = app.app_handle();
@@ -113,7 +52,9 @@ fn subscribe_new_trades(
     tauri::async_runtime::spawn(async move {
         for res in rx {
             match res {
-                Ok(_) => file_line_reader.process_new_content(),
+                Ok(_) => {
+                    let _ = file_line_reader.process_new_content();
+                }
                 Err(e) => panic!("file notify events fail: {:?}", e),
             }
         }
@@ -129,7 +70,7 @@ fn init_config(
     app: &mut tauri::App,
     tx: Sender<Result<Vec<DebouncedEvent>>>,
     model: Arc<Mutex<model::Model>>,
-) -> (FileLineReader, Debouncer<RecommendedWatcher>) {
+) -> (FileLineReader<File>, Debouncer<RecommendedWatcher>) {
     let base = app.path_resolver().app_config_dir().unwrap_or(
         app.path_resolver()
             .app_data_dir()
@@ -169,7 +110,7 @@ fn init_config(
         .watch(Path::new(&stx.logpath), RecursiveMode::NonRecursive)
         .unwrap();
 
-    let file_line_reader = FileLineReader::new(Arc::clone(&model), &stx.logpath);
+    let file_line_reader = FileLineReader::<File>::with_file(Arc::clone(&model), &stx.logpath).unwrap();
 
     app.manage(AppState {
         stx: Mutex::new(stx),

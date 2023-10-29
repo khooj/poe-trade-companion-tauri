@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Deserialize, Serialize, Clone, PartialEq)]
 pub enum TradeType {
     Incoming,
     Outgoing,
@@ -34,12 +34,12 @@ pub struct TradeInfo {
 
 #[derive(thiserror::Error, Debug)]
 pub enum ModelError {
-    #[error("can't parse line")]
-    ParseError,
+    #[error("can't parse line: {0}")]
+    ParseError(String),
 }
 
 static TRADE_MSG: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r#"@(?<type>(From|To)) (?<guild>(\<.+\>){0,1})\s*(?<char>.+):"#).unwrap()
+    Regex::new(r#"@(?<type>(?:From|To)) (?<guild>(?:<.+>){0,1})\s*(?<char>\w+):"#).unwrap()
 });
 
 fn is_trade(line: &str) -> bool {
@@ -53,7 +53,11 @@ fn type_person_info(line: &str) -> (TradeType, Option<String>, String) {
         "To" => TradeType::Outgoing,
         _ => panic!("unknown trade type"),
     };
-    let guild = matches.get(2).map(|e| e.as_str().to_string());
+    let guild = matches.get(2).map(|e| {
+        e.as_str()
+            .trim_matches(|c| c == '<' || c == '>')
+            .to_string()
+    });
     let char = matches["char"].to_string();
     (t, guild, char)
 }
@@ -66,11 +70,11 @@ static ENG_QUALITY: Lazy<Regex> =
     Lazy::new(|| Regex::new(r#"level (?<lvl>\d+) (?<quality>\d+)% (?<item>.*)"#).unwrap());
 
 static ENG_MSGS: Lazy<Vec<Regex>> = Lazy::new(|| {
-    let a = Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s]+) listed for (?<cost>[\d\.]+) (?<currency>[\w-]+) in (?<league>\w+)"#).unwrap();
+    let a = Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s,]+) listed for (?<cost>[\d\.]+) (?<currency>[\w-]+) in (?<league>\w+)"#).unwrap();
     let b =
-        Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s]+) in (?<league>\w+)"#).unwrap();
+        Regex::new(r#"Hi, I would like to buy your (?<item>[\w\s,]+) in (?<league>\w+)"#).unwrap();
     let c = Regex::new(
-        r#"Hi, I'd like to buy your (?<item>[\w\s]+) for my (?<item2>[\w\s]+) in (?<league>\w+)"#,
+        r#"Hi, I'd like to buy your (?<item>[\w\s,]+) for my (?<item2>[\w\s]+) in (?<league>\w+)"#,
     )
     .unwrap();
 
@@ -112,8 +116,10 @@ impl Model {
         }
 
         let (trade_type, _, char) = type_person_info(line);
+        println!("char parsed: {}", char);
 
         let trade_info = if let Some(v) = self.trades.values_mut().find(|v| v.player_name == char) {
+            println!("old trade info: {}", line);
             v
         } else {
             let mut matches = None;
@@ -125,8 +131,9 @@ impl Model {
                 }
             }
             if matches.is_none() {
-                return Err(ModelError::ParseError);
+                return Err(ModelError::ParseError(line.to_string()));
             }
+            println!("parsed line: {}", line);
             let matches = matches.unwrap();
             let match_quality = ENG_QUALITY.captures(line);
             let id = Uuid::new_v4();
@@ -162,26 +169,46 @@ impl Model {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::test_utilities::Callable;
 
     #[test]
-    fn messages() -> Result<(), Box<dyn std::error::Error>> {
+    fn regexps() {
+        let msg = r#"@From <TestGuild> 匚丹匚丹几丹: Hi, I would like to buy your Aegis Aurora Champion Kite Shield listed for 5 awakened-sextant in Ancestor (stash tab "~b/o 4.99 awakened-sextant"; position: left 9, top 7)"#;
+
+        assert!(is_trade(msg));
+        assert!(!is_trade("some specific information"));
+
+        let (trade_type, guild, char) = type_person_info(msg);
+        assert_eq!(trade_type, TradeType::Incoming);
+        assert_eq!(guild, Some("TestGuild".to_string()));
+        assert_eq!(char, "匚丹匚丹几丹".to_string());
+    }
+
+    #[test]
+    fn messages() {
         let mut model = Model::new();
-        model.outgoing_subscribe(|og| {
-            assert_eq!(og.cost_currency, Some("awakened-sextant".to_string()));
-        });
-        model.incoming_subscribe(|og| {
-            assert_eq!(og.cost_currency, Some("awakened-sextant".to_string()));
-        });
+        let clb = Callable::new();
+        {
+            let clb2 = clb.clone();
+            model.outgoing_subscribe(move |og| {
+                clb2.call();
+            });
+            let clb = clb.clone();
+            model.incoming_subscribe(move |og| {
+                clb.call();
+            });
+        }
 
         let msgs = [
             r#"@From <TestGuild> 匚丹匚丹几丹: Hi, I would like to buy your Aegis Aurora Champion Kite Shield listed for 5 awakened-sextant in Ancestor (stash tab "~b/o 4.99 awakened-sextant"; position: left 9, top 7)"#,
             r#"@To 匚丹匚丹几丹: Hi, I would like to buy your Aegis Aurora Champion Kite Shield listed for 5 awakened-sextant in Ancestor (stash tab "~b/o 4.99 awakened-sextant"; position: left 9, top 7)"#,
             r#"16642: 2020/06/23 17:07:09 1067255656 b5c [INFO Client 10768] @From sethmera: Hi, I would like to buy your Onslaught Bind Chain Belt listed for 1 awakened-sextant in Harvest (stash tab "~price 1 chaos"; position: left 2, top 1)"#,
+            r#"2023/10/13 01:54:50 1054470421 cffb0719 [INFO Client 30680] @From SambaLe: Hi, I would like to buy your The Pandemonius, Jade Amulet listed for 4 divine in Ancestor (stash tab "pub"; position: left 11, top 1)"#,
         ];
 
-        for m in msgs {
-            model.try_add(m)?;
+        for m in msgs.iter() {
+            model.try_add(m).unwrap();
         }
-        Ok(())
+        assert_eq!(clb.count(), msgs.len() as u64);
     }
 }
