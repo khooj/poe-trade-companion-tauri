@@ -12,10 +12,8 @@ use log::{debug, error};
 use notify_debouncer_mini::{
     new_debouncer_opt, notify::*, Config as NotifyDebouncerConfig, DebouncedEvent, Debouncer,
 };
-use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
-    io::{Read, Seek, SeekFrom},
     path::Path,
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -27,33 +25,50 @@ use tauri::{
     CustomMenuItem, Manager, PhysicalPosition, State, SystemTray, SystemTrayMenu,
     SystemTrayMenuItem,
 };
-// use tokio::sync::Mutex;
 
-#[derive(Clone, Serialize, Deserialize)]
-struct Id {
-    id: String,
+struct AppState {
+    stx: Mutex<settings::Settings>,
+    cfg_path: String,
+    file_line_reader: Mutex<Option<FileLineReader<File>>>,
+    model: Arc<Mutex<model::Model>>,
+    debouncer: Mutex<Debouncer<RecommendedWatcher>>,
 }
 
 fn subscribe_new_trades(
     app: tauri::AppHandle,
     model: Arc<Mutex<model::Model>>,
-    mut file_line_reader: FileLineReader<File>,
     rx: Receiver<Result<Vec<DebouncedEvent>>>,
 ) {
     let apph = app.app_handle();
     model.lock().unwrap().outgoing_subscribe(move |og| {
+        debug!("trigger new outgoing trade: {:?}", og);
         apph.emit_all("new-outgoing-trade", og).unwrap();
     });
     let apph = app.app_handle();
     model.lock().unwrap().incoming_subscribe(move |ig| {
+        debug!("trigger new incoming trade: {:?}", ig);
         apph.emit_all("new-incoming-trade", ig).unwrap();
     });
 
+    let apph = app.app_handle();
     tauri::async_runtime::spawn(async move {
         for res in rx {
             match res {
                 Ok(_) => {
-                    let _ = file_line_reader.process_new_content();
+                    debug!("start processing notify event");
+                    let appstate = apph.state::<AppState>();
+                    let mut flr = if let Ok(r) = appstate.file_line_reader.lock() {
+                        r
+                    } else {
+                        return;
+                    };
+                    if flr.is_none() {
+                        debug!("file_line_reader not initialized");
+                        return;
+                    }
+
+                    let r = flr.as_mut().unwrap().process_new_content();
+                    debug!("end processing notify event: {:?}", r);
                 }
                 Err(e) => panic!("file notify events fail: {:?}", e),
             }
@@ -61,16 +76,11 @@ fn subscribe_new_trades(
     });
 }
 
-struct AppState {
-    stx: Mutex<settings::Settings>,
-    cfg_path: String,
-}
-
 fn init_config(
     app: &mut tauri::App,
     tx: Sender<Result<Vec<DebouncedEvent>>>,
     model: Arc<Mutex<model::Model>>,
-) -> (FileLineReader<File>, Debouncer<RecommendedWatcher>) {
+) {
     let base = app.path_resolver().app_config_dir().unwrap_or(
         app.path_resolver()
             .app_data_dir()
@@ -110,14 +120,15 @@ fn init_config(
         .watch(Path::new(&stx.logpath), RecursiveMode::NonRecursive)
         .unwrap();
 
-    let file_line_reader = FileLineReader::<File>::with_file(Arc::clone(&model), &stx.logpath).unwrap();
+    let file_line_reader = FileLineReader::<File>::with_file(Arc::clone(&model), &stx.logpath).ok();
 
     app.manage(AppState {
         stx: Mutex::new(stx),
         cfg_path: cfg_path.to_string(),
+        file_line_reader: Mutex::new(file_line_reader),
+        model,
+        debouncer: Mutex::new(debouncer),
     });
-
-    (file_line_reader, debouncer)
 }
 
 fn setup_systemtray(app: &mut tauri::App) {}
@@ -140,12 +151,20 @@ fn update_position_stx(stx: State<AppState>, position: (i32, i32), window: Strin
 #[tauri::command]
 fn update_logpath_stx(stx: State<AppState>, logpath: String) {
     let mut s = stx.stx.lock().unwrap();
-    s.logpath = logpath;
+    let oldpath = std::mem::replace(&mut s.logpath, logpath);
     let r = s.save(&stx.cfg_path);
     if r.is_err() {
         error!("can't save stx: {}", r.unwrap_err());
     }
     debug!("called update_logpath_stx {}", s.logpath);
+    let file_line_reader =
+        FileLineReader::<File>::with_file(Arc::clone(&stx.model), &s.logpath).ok();
+    *stx.file_line_reader.lock().unwrap() = file_line_reader;
+    let mut db = stx.debouncer.lock().unwrap();
+    db.watcher().unwatch(Path::new(&oldpath)).unwrap();
+    db.watcher()
+        .watch(Path::new(&s.logpath), RecursiveMode::NonRecursive)
+        .unwrap();
 }
 
 fn main() {
@@ -160,8 +179,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
         .setup(move |app| {
-            let (file_line_reader, debouncer) = init_config(app, tx, Arc::clone(&model));
-            subscribe_new_trades(app.app_handle(), model, file_line_reader, rx);
+            let debouncer = init_config(app, tx, Arc::clone(&model));
+            subscribe_new_trades(app.app_handle(), model, rx);
             let _ = app.manage(debouncer);
             Ok(())
         })

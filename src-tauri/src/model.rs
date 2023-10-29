@@ -36,6 +36,8 @@ pub struct TradeInfo {
 pub enum ModelError {
     #[error("can't parse line: {0}")]
     ParseError(String),
+    #[error("not a trade line")]
+    NotATradeError,
 }
 
 static TRADE_MSG: Lazy<Regex> = Lazy::new(|| {
@@ -112,7 +114,7 @@ impl Model {
 
     pub fn try_add(&mut self, line: &str) -> Result<(), ModelError> {
         if !is_trade(line) {
-            return Ok(());
+            return Err(ModelError::NotATradeError);
         }
 
         let (trade_type, _, char) = type_person_info(line);

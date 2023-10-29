@@ -4,6 +4,7 @@ use std::{
     io::{Read, Seek, SeekFrom},
     sync::{Arc, Mutex},
 };
+use log::debug;
 
 pub trait Len {
     fn len(&self) -> std::io::Result<u64>;
@@ -52,16 +53,19 @@ impl<F: FileLineReaderSource> FileLineReader<F> {
         if new_size <= self.byte_count {
             // probably file truncated or nothing new added, just update byte_count and wait for new call
             self.byte_count = new_size;
+            debug!("no new content in source");
             return Ok(());
         }
         self.byte_count = new_size;
 
         let mut contents = String::new();
         self.sock.read_to_string(&mut contents)?;
+        debug!("read {} data to process", contents.len());
         let mut lock = self.model.lock().unwrap();
         for l in contents.lines() {
             // add log
-            lock.try_add(l)?;
+            let r = lock.try_add(l);
+            debug!("result processing line: {} {:?}", l, r);
         }
         Ok(())
     }

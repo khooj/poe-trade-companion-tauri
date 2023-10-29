@@ -1,8 +1,9 @@
 <script>
 	export let id;
-	export let buyer;
-	export let item;
-	export let price;
+	export let playerName;
+	export let itemName;
+	export let costNumber;
+	export let costCurrency;
 	export let stash;
 	export let lastMessage;
 	export let time;
@@ -21,9 +22,9 @@
 <div class="flex flex-col">
 	<div class="flex">
 		<div class="border-2">
-			<div>buyer: {buyer} {id}</div>
-			<div>item: {item}</div>
-			<div>price: {price}</div>
+			<div>buyer: {playerName} {id}</div>
+			<div>item: {itemName}</div>
+			<div>price: {costNumber} {costCurrency}</div>
 			<div>stash: {stash}</div>
 			<div>msg: {lastMessage}</div>
 		</div>

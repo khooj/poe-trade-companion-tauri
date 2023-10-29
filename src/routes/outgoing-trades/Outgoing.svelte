@@ -7,6 +7,7 @@
 	const svgHeight = 20;
 	const svgWidth = 20;
 
+	export let id;
 	export let itemName;
 	export let playerName;
 	export let time;
