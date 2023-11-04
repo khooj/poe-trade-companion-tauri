@@ -166,6 +166,10 @@ impl Model {
         };
         Ok(())
     }
+
+    pub fn remove_trade(&mut self, id: String) {
+        self.trades.remove(&id);
+    }
 }
 
 #[cfg(test)]

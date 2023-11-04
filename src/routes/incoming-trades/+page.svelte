@@ -47,7 +47,7 @@
 	function removeCurrentTrade() {
 		const idx = trades.findIndex((el) => el.id === currentTrade.id);
 		if (idx !== undefined) {
-			invoke('incoming_trade_remove', { id: currentTrade.id });
+			invoke('trade_close', { id: currentTrade.id });
 			trades = [...trades.slice(0, idx), ...trades.slice(idx + 1)];
 			if (idx < trades.length) {
 				currentTrade = trades[idx];

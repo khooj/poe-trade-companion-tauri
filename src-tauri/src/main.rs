@@ -22,7 +22,7 @@ use std::{
     time::Duration,
 };
 use tauri::{
-    CustomMenuItem, Manager, PhysicalPosition, State, SystemTray, SystemTrayMenu,
+    CustomMenuItem, Manager, PhysicalPosition, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
     SystemTrayMenuItem,
 };
 
@@ -167,13 +167,36 @@ fn update_logpath_stx(stx: State<AppState>, logpath: String) {
         .unwrap();
 }
 
+#[tauri::command]
+fn trade_close(stx: State<AppState>, id: String) {
+    let mut m = stx.model.lock().unwrap();
+    m.remove_trade(id);
+}
+
+fn system_tray_event_handler(app: &tauri::AppHandle, event: SystemTrayEvent) {
+    match event {
+        SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+            "quit" => {
+                app.exit(0);
+            }
+            "settings" => {
+                let window = app.get_window("settings").unwrap();
+                window.show().unwrap();
+            }
+            _ => {}
+        },
+        _ => {}
+    }
+}
+
 fn main() {
     let (tx, rx) = channel();
 
     let model = Arc::new(Mutex::new(model::Model::new()));
 
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    let tray_menu = SystemTrayMenu::new().add_item(quit);
+    let settings = CustomMenuItem::new("settings".to_string(), "Settings");
+    let tray_menu = SystemTrayMenu::new().add_item(quit).add_item(settings);
     let tray = SystemTray::new().with_menu(tray_menu);
 
     tauri::Builder::default()
@@ -184,12 +207,26 @@ fn main() {
             let _ = app.manage(debouncer);
             Ok(())
         })
-        // .system_tray(tray)
         .invoke_handler(tauri::generate_handler![
             update_position_stx,
-            update_logpath_stx
+            update_logpath_stx,
+            trade_close,
         ])
         .system_tray(tray)
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .on_system_tray_event(system_tray_event_handler)
+        .on_window_event(|event| match event.event() {
+            tauri::WindowEvent::CloseRequested { api, .. } => {
+                event.window().hide().unwrap();
+                api.prevent_close();
+            }
+            _ => {}
+        })
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|_app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => {}
+        })
 }

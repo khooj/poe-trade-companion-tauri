@@ -49,7 +49,7 @@
 	function removeFromTrades(uuid) {
 		return () => {
 			$trades = $trades.filter((t) => t.id !== uuid);
-			invoke('outgoing_trade_close', { id: uuid });
+			invoke('trade_close', { id: uuid });
 			if ($trades.length === 0) {
 				emit('outgoing-trades-hide-window', {});
 			}
