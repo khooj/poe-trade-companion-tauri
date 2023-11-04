@@ -196,11 +196,11 @@ mod tests {
         let clb = Callable::new();
         {
             let clb2 = clb.clone();
-            model.outgoing_subscribe(move |og| {
+            model.outgoing_subscribe(move |_og| {
                 clb2.call();
             });
             let clb = clb.clone();
-            model.incoming_subscribe(move |og| {
+            model.incoming_subscribe(move |_og| {
                 clb.call();
             });
         }
