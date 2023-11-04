@@ -1,6 +1,4 @@
-use std::path::Path;
-
-use config::{Config, ConfigError, Environment, File};
+use config::{Config, ConfigError, File};
 use serde::{Deserialize, Serialize};
 use serde_json::to_writer;
 
@@ -13,7 +11,7 @@ pub struct Settings {
 
 impl Settings {
     pub fn new(p: &str) -> Result<Self, ConfigError> {
-        let s = Config::builder().add_source(File::with_name(&p)).build()?;
+        let s = Config::builder().add_source(File::with_name(p)).build()?;
         s.try_deserialize()
     }
 

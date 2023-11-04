@@ -199,9 +199,8 @@ fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_log::Builder::default().build())
         .setup(move |app| {
-            let debouncer = init_config(app, tx, Arc::clone(&model));
+            init_config(app, tx, Arc::clone(&model));
             subscribe_new_trades(app.app_handle(), model, rx);
-            let _ = app.manage(debouncer);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
