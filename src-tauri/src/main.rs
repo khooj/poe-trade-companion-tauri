@@ -23,7 +23,6 @@ use std::{
 };
 use tauri::{
     CustomMenuItem, Manager, PhysicalPosition, State, SystemTray, SystemTrayEvent, SystemTrayMenu,
-    SystemTrayMenuItem,
 };
 
 struct AppState {
@@ -130,8 +129,6 @@ fn init_config(
         debouncer: Mutex::new(debouncer),
     });
 }
-
-fn setup_systemtray(app: &mut tauri::App) {}
 
 #[tauri::command]
 fn update_position_stx(stx: State<AppState>, position: (i32, i32), window: String) {
